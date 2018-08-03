@@ -5,7 +5,7 @@
 
 Lwr_testdriver::Lwr_testdriver(std::string const& name) : TaskContext(name){
     maximum_torques.setOnes(6);
-    this->addProperty("maximum_torques", maximum_torques).doc("Maximum torques to be generated [rad]");
+    this->addProperty("maximum_torques", maximum_torques).doc("Maximum torques to be generated");
 
     target_angles.setZero(6);
     target_angles << 0.35f, -1.57f, -1.57f, 1.57f, 0.35f, 0.0f;
