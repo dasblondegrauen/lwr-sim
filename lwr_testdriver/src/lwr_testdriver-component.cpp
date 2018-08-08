@@ -48,27 +48,26 @@ void Lwr_testdriver::updateHook(){
     // Read current state
     joint_state_in_flow = joint_state_in_port.read(joint_state_in_data);
 
-    // For six joints in upper_arm
-    for(counter = 0; counter < 6; counter++) {
-        // Apply torque until target angles are within reach of epsilon
-        if(std::abs(target_angles[counter] - joint_state_in_data.angles[counter]) > epsilon) {
-            torques_out_data.torques[counter] = positioning_torques[counter]; // Simply apply maximum torques - works in simulation ;)
-
-            // Actually move in correct direction
-            if(target_angles[counter] - joint_state_in_data.angles[counter] < 0) {
-                torques_out_data.torques[counter] *= -1;
-            }
-          } else {
-            torques_out_data.torques[counter] = 0.0f;
-            in_position++;
-          }
-    }
-
-    // TODO: If all target angles reached, switch to pushing mode
     if(in_position == 6) {
-        torques_out_data.torques = pushing_torques;
+        torques_out_data.torques << pushing_torques;
     } else {
         in_position = 0;
+
+        // For six joints in upper_arm
+        for(counter = 0; counter < 6; counter++) {
+            // Apply torque until target angles are within reach of epsilon
+            if(std::abs(target_angles[counter] - joint_state_in_data.angles[counter]) > epsilon) {
+                torques_out_data.torques[counter] = positioning_torques[counter]; // Simply apply maximum torques - works in simulation ;)
+
+                // Actually move in correct direction
+                if(target_angles[counter] - joint_state_in_data.angles[counter] < 0) {
+                    torques_out_data.torques[counter] *= -1;
+                }
+            } else {
+                torques_out_data.torques[counter] = 0.0f;
+                in_position++;
+            }
+        }
     }
 
     torques_out_port.write(torques_out_data);
