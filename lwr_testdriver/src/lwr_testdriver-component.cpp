@@ -1,17 +1,22 @@
 #include "lwr_testdriver-component.hpp"
 #include <rtt/Component.hpp>
 #include <rtt/Logger.hpp>
+#include <eigen3/Eigen/Dense>
 #include <cmath>
 
 Lwr_testdriver::Lwr_testdriver(std::string const& name) : TaskContext(name){
-    maximum_torques.setOnes(6);
-    this->addProperty("maximum_torques", maximum_torques).doc("Maximum torques to be generated");
+    positioning_torques.setOnes(6);
+    this->addProperty("positioning_torques", positioning_torques).doc("Torques to be generated for positioning");
+
+    pushing_torques.setZero(6);
+    pushing_torques << -440.234f, 454.353f, -40.453f, -488.387f, 904.938f, -442.966f;
+    this->addProperty("pushing_torques", pushing_torques).doc("Torques to be generated for pushing");
 
     target_angles.setZero(6);
     target_angles << 0.35f, -1.57f, -1.57f, 1.57f, 0.35f, 0.0f;
     this->addProperty("target_angles", target_angles).doc("Target joint angles to be reached [rad]");
 
-    epsilon = 0.001f;
+    epsilon = 0.001f; // TODO: Increase?
     this->addProperty("epsilon", epsilon).doc("Desired precision [rad]");
 
     joint_state_in_port.doc("Joint state feedback port");
@@ -47,7 +52,7 @@ void Lwr_testdriver::updateHook(){
     for(counter = 0; counter < 6; counter++) {
         // Apply torque until target angles are within reach of epsilon
         if(std::abs(target_angles[counter] - joint_state_in_data.angles[counter]) > epsilon) {
-            torques_out_data.torques[counter] = maximum_torques[counter]; // Simply apply maximum torques - works in simulation ;)
+            torques_out_data.torques[counter] = positioning_torques[counter]; // Simply apply maximum torques - works in simulation ;)
 
             // Actually move in correct direction
             if(target_angles[counter] - joint_state_in_data.angles[counter] < 0) {
@@ -55,7 +60,15 @@ void Lwr_testdriver::updateHook(){
             }
           } else {
             torques_out_data.torques[counter] = 0.0f;
+            in_position++;
           }
+    }
+
+    // TODO: If all target angles reached, switch to pushing mode
+    if(in_position == 6) {
+        torques_out_data.torques = pushing_torques;
+    } else {
+        in_position = 0;
     }
 
     torques_out_port.write(torques_out_data);

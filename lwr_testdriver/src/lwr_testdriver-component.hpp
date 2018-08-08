@@ -3,7 +3,7 @@
 
 #include <rtt/RTT.hpp>
 #include <rtt/Port.hpp>
-#include <eigen3/Eigen/Core>
+#include <eigen3/Eigen/Dense>
 #include <rst-rt/dynamics/JointTorques.hpp>
 #include <rst-rt/kinematics/JointAngles.hpp>
 #include <rst-rt/robot/JointState.hpp>
@@ -18,7 +18,8 @@ public:
     void cleanupHook();
 
 private:
-    Eigen::VectorXf maximum_torques;
+    Eigen::VectorXf positioning_torques;
+    Eigen::VectorXf pushing_torques;
     Eigen::VectorXf target_angles;
     float epsilon;
 
@@ -30,5 +31,6 @@ private:
     rstrt::dynamics::JointTorques torques_out_data;
 
     Eigen::Index counter;
+    unsigned short in_position = 0;
 };
 #endif
