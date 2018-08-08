@@ -3,3 +3,5 @@ orocos.log
 build/
 CMakeLists.txt.user
 Makefile
+.ipynb_checkpoints/
+tags
