@@ -9,15 +9,18 @@ Lwr_testdriver::Lwr_testdriver(std::string const& name) : TaskContext(name){
     this->addProperty("positioning_torques", positioning_torques).doc("Torques to be generated for positioning");
 
     pushing_torques.setZero(6);
-    pushing_torques << -440.234f, 454.353f, -40.453f, -488.387f, 904.938f, -442.966f;
+    pushing_torques << 440.234f, -454.353f, 40.453f, 488.387f, -904.938f, 442.966f;
     this->addProperty("pushing_torques", pushing_torques).doc("Torques to be generated for pushing");
 
     target_angles.setZero(6);
     target_angles << 0.35f, -1.57f, -1.57f, 1.57f, 0.35f, 0.0f;
     this->addProperty("target_angles", target_angles).doc("Target joint angles to be reached [rad]");
 
-    epsilon = 0.001f; // TODO: Increase?
+    epsilon = 0.005f; // TODO: Adjust?
     this->addProperty("epsilon", epsilon).doc("Desired precision [rad]");
+
+    push = false;
+    this->addProperty("push", push).doc("If true, pushing torques are applied as soon as target angles are reached");
 
     joint_state_in_port.doc("Joint state feedback port");
     joint_state_in_flow = RTT::NoData;
@@ -48,7 +51,9 @@ void Lwr_testdriver::updateHook(){
     // Read current state
     joint_state_in_flow = joint_state_in_port.read(joint_state_in_data);
 
-    if(in_position == 6) {
+    // If in position & pushing enabled, push!
+    // Else drive to position
+    if(push && in_position == 6) {
         torques_out_data.torques << pushing_torques;
     } else {
         in_position = 0;
@@ -57,7 +62,7 @@ void Lwr_testdriver::updateHook(){
         for(counter = 0; counter < 6; counter++) {
             // Apply torque until target angles are within reach of epsilon
             if(std::abs(target_angles[counter] - joint_state_in_data.angles[counter]) > epsilon) {
-                torques_out_data.torques[counter] = positioning_torques[counter]; // Simply apply maximum torques - works in simulation ;)
+                torques_out_data.torques[counter] = positioning_torques[counter];
 
                 // Actually move in correct direction
                 if(target_angles[counter] - joint_state_in_data.angles[counter] < 0) {

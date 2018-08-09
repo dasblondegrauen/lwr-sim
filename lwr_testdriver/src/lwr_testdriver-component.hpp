@@ -22,6 +22,7 @@ private:
     Eigen::VectorXf pushing_torques;
     Eigen::VectorXf target_angles;
     float epsilon;
+    bool push = false;
 
     RTT::InputPort<rstrt::robot::JointState> joint_state_in_port;
     RTT::FlowStatus joint_state_in_flow;
