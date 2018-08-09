@@ -9,7 +9,7 @@ Lwr_testdriver::Lwr_testdriver(std::string const& name) : TaskContext(name){
     this->addProperty("positioning_torques", positioning_torques).doc("Torques to be generated for positioning");
 
     pushing_torques.setZero(6);
-    pushing_torques << 440.234f, -454.353f, 40.453f, 488.387f, -904.938f, 442.966f;
+    pushing_torques << 13.989f, -13.805f, 0.939f, -0.174f, -0.063f, 0.939f;
     this->addProperty("pushing_torques", pushing_torques).doc("Torques to be generated for pushing");
 
     target_angles.setZero(6);
