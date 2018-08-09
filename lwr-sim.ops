@@ -13,7 +13,7 @@ setActivity("gazebo", 0.001, 10, ORO_SCHED_OTHER);
 
 gazebo.argv = strings("--verbose");
 gazebo.add_plugin("libRTTGazeboClockPlugin.so");
-gazebo.world_path = "zerog.world";
+gazebo.world_path = "zerog.sdf";
 gazebo.configure();
 gazebo.start();
 gazebo.toggleDynamicsSimulation(false);
@@ -36,4 +36,4 @@ connect("driver.torquesOut", "lwr.upper_arm_JointTorqueCtrl", cp);
 gazebo.toggleDynamicsSimulation(true);
 lwr.setControlMode("upper_arm", "JointTorqueCtrl");
 lwr.start();
-driver.start();
+#driver.start();
