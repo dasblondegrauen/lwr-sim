@@ -2,6 +2,7 @@
 #include <rtt/Component.hpp>
 #include <rtt/Logger.hpp>
 #include <eigen3/Eigen/Dense>
+#include <string>
 #include <cmath>
 
 Lwr_testdriver::Lwr_testdriver(std::string const& name) : TaskContext(name){
@@ -16,6 +17,8 @@ Lwr_testdriver::Lwr_testdriver(std::string const& name) : TaskContext(name){
     target_angles << 0.35f, -1.57f, -1.57f, 1.57f, 0.35f, 0.0f;
     this->addProperty("target_angles", target_angles).doc("Target joint angles to be reached [rad]");
 
+    this->addProperty("model_path", model_path).doc("URDF file path");
+
     epsilon = 0.005f; // TODO: Adjust?
     this->addProperty("epsilon", epsilon).doc("Desired precision [rad]");
 
@@ -28,6 +31,18 @@ Lwr_testdriver::Lwr_testdriver(std::string const& name) : TaskContext(name){
 
     torques_out_port.doc("Torque output port");
     this->addPort("torquesOut", torques_out_port);
+
+    if(!model.initFile(model_path)) {
+        RTT::log(RTT::Error) << "Could not load model from URDF at " << model_path << RTT::endlog();
+    }
+
+    if(!kdl_parser::treeFromUrdfModel(model, model_tree)) {
+        RTT::log(RTT::Error) << "Could not get tree from model" << RTT::endlog();
+    }
+
+    if(!model_tree.getChain("lwr_arm_base_link", "lwr_arm_7_link", lwr)) {
+        RTT::log(RTT::Error) << "Could not get chain from tree" << RTT::endlog();
+    }
 
     RTT::log(RTT::Info) << "Lwr_testdriver constructed" << RTT::endlog();
 }
