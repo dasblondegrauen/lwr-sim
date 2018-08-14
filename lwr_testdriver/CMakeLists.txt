@@ -4,7 +4,7 @@
 #
 cmake_minimum_required(VERSION 2.6.3)
 set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
+set(CMAKE_EXPORT_COMPILE_COMMANDS true)
 
 #
 # This creates a standard cmake project. You may extend this file with

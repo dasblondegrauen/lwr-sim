@@ -53,7 +53,9 @@ orocos_component(lwr_testdriver lwr_testdriver-component.hpp lwr_testdriver-comp
 target_link_libraries(${CMAKE_PROJECT_NAME}
     ${RST-RT_LIBRARIES}
     ${orocos_kdl_LIBRARIES}
-    ${urdfdom_LIBRARIES})
+    ${urdfdom_LIBRARIES}
+    ${kdl_parser_LIBRARIES}
+    ${urdf_LIBRARIES})
 #
 # You may add multiple orocos_component statements.
 
