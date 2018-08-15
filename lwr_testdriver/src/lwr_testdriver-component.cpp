@@ -25,9 +25,16 @@ Lwr_testdriver::Lwr_testdriver(std::string const& name) : TaskContext(name){
 
     this->addOperation("loadModel", &Lwr_testdriver::loadModel, this).doc("Load kinematic model from specified URDF file");
 
+    joint_state_base_in_port.doc("Base joint state feedback port");
+    joint_state_base_in_flow = RTT::NoData;
+    this->addPort("jointStateBaseIn", joint_state_base_in_port);
+
     joint_state_upper_arm_in_port.doc("Upper arm joint state feedback port");
     joint_state_upper_arm_in_flow = RTT::NoData;
     this->addPort("jointStateUpperArmIn", joint_state_upper_arm_in_port);
+
+    torques_base_out_port.doc("Base torque output port");
+    this->addPort("torquesBaseOut", torques_base_out_port);
 
     torques_upper_arm_out_port.doc("Upper arm torque output port");
     this->addPort("torquesUpperArmOut", torques_upper_arm_out_port);
@@ -39,6 +46,9 @@ Lwr_testdriver::Lwr_testdriver(std::string const& name) : TaskContext(name){
 
 
 bool Lwr_testdriver::configureHook(){
+    torques_base_out_data.torques.setZero(1);
+    torques_base_out_port.setDataSample(torques_base_out_data);
+
     torques_upper_arm_out_data.torques.setZero(6);
     torques_upper_arm_out_port.setDataSample(torques_upper_arm_out_data);
 
@@ -53,6 +63,7 @@ bool Lwr_testdriver::configureHook(){
 
 
 bool Lwr_testdriver::startHook(){
+    torques_base_out_data.torques.setZero(1);
     torques_upper_arm_out_data.torques.setZero(6);
 
     RTT::log(RTT::Info) << "Lwr_testdriver started" << RTT::endlog();
@@ -62,8 +73,11 @@ bool Lwr_testdriver::startHook(){
 
 void Lwr_testdriver::updateHook(){
     // Read current state
+    joint_state_base_in_flow = joint_state_base_in_port.read(joint_state_base_in_data);
+    q.data << joint_state_base_in_data.angles.cast<double>();
+
     joint_state_upper_arm_in_flow = joint_state_upper_arm_in_port.read(joint_state_upper_arm_in_data);
-    q.data = joint_state_upper_arm_in_data.angles.cast<double>();
+    q.data << joint_state_upper_arm_in_data.angles.cast<double>();
 
     // If in position & pushing enabled, push!
     // Else drive to position
@@ -96,6 +110,9 @@ void Lwr_testdriver::updateHook(){
 
 
 void Lwr_testdriver::stopHook() {
+    torques_base_out_data.torques.setZero(1);
+    torques_upper_arm_out_data.torques.setZero(6);
+
     RTT::log(RTT::Info) << "Lwr_testdriver executes stopping" << RTT::endlog();
 }
 
