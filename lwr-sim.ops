@@ -6,7 +6,7 @@ import("rtt-core-extensions");
 import("lwr_testdriver");
 require("os");
 
-os.setenv("GAZEBO_MODEL_PATH", "/home/franka/cogimon-gazebo-models/");
+#os.setenv("GAZEBO_MODEL_PATH", "/home/franka/cogimon-gazebo-models/");
 
 loadComponent("gazebo", "RTTGazeboEmbedded");
 setActivity("gazebo", 0.001, 10, ORO_SCHED_OTHER);
@@ -17,7 +17,7 @@ gazebo.world_path = "zerog.sdf";
 gazebo.configure();
 gazebo.start();
 gazebo.toggleDynamicsSimulation(false);
-gazebo.spawn_model("gazebo-lwr", "model://kuka-lwr-4plus", 10);
+gazebo.spawn_model("gazebo-lwr", "model://kuka-lwr-4plus-ft", 10);
 
 loadComponent("lwr", "cogimon::lwrSim");
 setActivity("lwr", 0.001, 11, ORO_SCHED_OTHER);
@@ -27,11 +27,12 @@ lwr.configure();
 
 loadComponent("driver", "Lwr_testdriver");
 setActivity("driver", 0.001, 10, ORO_SCHED_OTHER);
+driver.loadModel("/home/franka/citk/systems/cogimon-minimal-nightly/share/gazebo/models/cogimon/kuka-lwr-4plus-ft/model.urdf");
 driver.configure();
 
 var ConnPolicy cp;
-connect("lwr.upper_arm_JointFeedback", "driver.jointStateIn", cp);
-connect("driver.torquesOut", "lwr.upper_arm_JointTorqueCtrl", cp);
+connect("lwr.upper_arm_JointFeedback", "driver.jointStateUpperArmIn", cp);
+connect("driver.torquesUpperArmOut", "lwr.upper_arm_JointTorqueCtrl", cp);
 
 gazebo.toggleDynamicsSimulation(true);
 lwr.setControlMode("upper_arm", "JointTorqueCtrl");
