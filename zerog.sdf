@@ -80,25 +80,15 @@
       <heading_deg>0</heading_deg>
     </spherical_coordinates>
     <state world_name='default'>
-      <sim_time>78 779000000</sim_time>
-      <real_time>13 539280230</real_time>
-      <wall_time>1533822306 449429164</wall_time>
-      <iterations>13148</iterations>
+      <sim_time>89 547000000</sim_time>
+      <real_time>10 872242783</real_time>
+      <wall_time>1534423006 561009915</wall_time>
+      <iterations>10768</iterations>
       <model name='ground_plane'>
         <pose frame=''>0 0 0 0 -0 0</pose>
         <scale>1 1 1</scale>
         <link name='link'>
           <pose frame=''>0 0 0 0 -0 0</pose>
-          <velocity>0 0 0 0 -0 0</velocity>
-          <acceleration>0 0 0 0 -0 0</acceleration>
-          <wrench>0 0 0 0 -0 0</wrench>
-        </link>
-      </model>
-      <model name='nist_maze_wall_120'>
-        <pose frame=''>0.232666 -0.065353 0.39214 -0.123 -0.362 0.372</pose>
-        <scale>1 1 1</scale>
-        <link name='nist_maze_wall_120_link'>
-          <pose frame=''>0.232666 -0.065353 0.39214 -0.123 -0.362 0.372</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 0 0 -0 0</acceleration>
           <wrench>0 0 0 0 -0 0</wrench>
@@ -113,7 +103,7 @@
     </state>
     <gui fullscreen='0'>
       <camera name='user_camera'>
-        <pose frame=''>-0.013915 0.680771 2.00009 1.56383 1.56486 -0.001029</pose>
+        <pose frame=''>-0.013915 0.680771 2.00009 1.56383 1.56486 -0.001028</pose>
         <view_controller>orbit</view_controller>
         <projection_type>perspective</projection_type>
       </camera>
@@ -131,43 +121,5 @@
       <cast_shadows>0</cast_shadows>
       <direction>0 0 -1</direction>
     </light>
-    <model name='nist_maze_wall_120'>
-      <static>1</static>
-      <link name='nist_maze_wall_120_link'>
-        <pose frame=''>0 0 0 0 -0 0</pose>
-        <collision name='collision'>
-          <geometry>
-            <mesh>
-              <uri>model://nist_maze_wall_120/meshes/nist_maze_wall_120.dae</uri>
-              <scale>1 1 1</scale>
-            </mesh>
-          </geometry>
-          <max_contacts>10</max_contacts>
-          <surface>
-            <contact>
-              <ode/>
-            </contact>
-            <bounce/>
-            <friction>
-              <torsional>
-                <ode/>
-              </torsional>
-              <ode/>
-            </friction>
-          </surface>
-        </collision>
-        <visual name='visual'>
-          <geometry>
-            <mesh>
-              <uri>model://nist_maze_wall_120/meshes/nist_maze_wall_120.dae</uri>
-              <scale>1 1 1</scale>
-            </mesh>
-          </geometry>
-        </visual>
-        <self_collide>0</self_collide>
-        <kinematic>0</kinematic>
-      </link>
-      <pose frame=''>-0.161841 0.307394 0 0 -0 0</pose>
-    </model>
   </world>
 </sdf>
