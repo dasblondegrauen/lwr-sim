@@ -13,17 +13,18 @@ Lwr_testdriver::Lwr_testdriver(std::string const& name) : TaskContext(name){
     target_angles << 0.0f, 0.35f, -1.57f, -1.57f, 1.57f, 0.35f, 0.0f;
     this->addProperty("target_angles", target_angles).doc("Target joint angles to be reached [rad]");
 
+    epsilon = 0.005f; // TODO: Adjust?
+    this->addProperty("epsilon", epsilon).doc("Desired precision [rad]");
+
     pushing_axis.setZero(6);
     pushing_axis(2) = 1.0;
     this->addProperty("pushing_axis", pushing_axis).doc("Pushing direction in EE frame");
-
-    epsilon = 0.005f; // TODO: Adjust?
-    this->addProperty("epsilon", epsilon).doc("Desired precision [rad]");
 
     push = false;
     this->addProperty("push", push).doc("If true, pushing torques are applied as soon as target angles are reached");
 
     this->addOperation("loadModel", &Lwr_testdriver::loadModel, this).doc("Load kinematic model from specified URDF file");
+    this->addProperty("q", q).doc("Joint values");
 
     joint_state_base_in_port.doc("Base joint state feedback port");
     joint_state_base_in_flow = RTT::NoData;
@@ -74,10 +75,10 @@ bool Lwr_testdriver::startHook(){
 void Lwr_testdriver::updateHook(){
     // Read current state
     joint_state_base_in_flow = joint_state_base_in_port.read(joint_state_base_in_data);
-    q.data << joint_state_base_in_data.angles.cast<double>();
+    q.data.head<1>() = joint_state_base_in_data.angles.cast<double>();
 
     joint_state_upper_arm_in_flow = joint_state_upper_arm_in_port.read(joint_state_upper_arm_in_data);
-    q.data << joint_state_upper_arm_in_data.angles.cast<double>();
+    q.data.tail<6>() = joint_state_upper_arm_in_data.angles.cast<double>();
 
     // If in position & pushing enabled, push!
     // Else drive to position
@@ -152,18 +153,14 @@ bool Lwr_testdriver::loadModel(const std::string& model_path) {
 
 Eigen::VectorXd Lwr_testdriver::computeTorques(Eigen::Matrix<double, 6, 1>& axis, double magnitude) {
     // TODO Do not declare variables here!
-    KDL::Frame ee;
     fk_solver_pos->JntToCart(q, ee);
+    inv = ee.Inverse();
 
-    Eigen::Matrix<double, 6, 6> htb;
     htb.Zero(6, 6);
-
-    auto inv = ee.Inverse();
     for(ind_j = 0; ind_j < 3; ind_j++) {
         for(ind_i = 0; ind_i < 3; ind_i++) {
             htb(ind_i, ind_j) = static_cast<double>(inv(ind_i, ind_j));
             htb(3 + ind_i, 3 + ind_j) = static_cast<double>(inv(ind_i, ind_j));
-            RTT::log(RTT::Info) << ind_i << ", " << ind_j << RTT::endlog();
         }
     }
 

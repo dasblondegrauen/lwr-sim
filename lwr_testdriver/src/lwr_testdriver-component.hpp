@@ -58,6 +58,9 @@ private:
 
     std::unique_ptr<KDL::ChainFkSolverPos_recursive> fk_solver_pos;
     std::unique_ptr<KDL::ChainJntToJacSolver> jnt_to_jac_solver;
+    KDL::Frame ee;
+    KDL::Frame inv;
+    Eigen::Matrix<double, 6, 6> htb;
     KDL::Jacobian j;
     KDL::Jacobian j_htb;
 };
