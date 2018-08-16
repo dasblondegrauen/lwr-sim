@@ -2,7 +2,7 @@
 #include <rtt/Component.hpp>
 #include <rtt/Logger.hpp>
 #include <eigen3/Eigen/Dense>
-
+#include <kdl/frames_io.hpp>
 
 Lwr_testdriver::Lwr_testdriver(std::string const& name) : TaskContext(name){
     positioning_torque = 1.0f;
@@ -10,21 +10,22 @@ Lwr_testdriver::Lwr_testdriver(std::string const& name) : TaskContext(name){
 
     target_angles.setZero(7);
     //target_angles << 1.064f, 2.084f, -1.421f, 1.403f, 0.874f, -2.641f, -1.814f;
-    target_angles << 0.0f, 0.35f, -1.57f, -1.57f, 1.57f, 0.35f, 0.0f;
+    target_angles << 1.57f, 0.35f, -1.57f, -1.57f, 1.57f, 0.35f, 0.0f;
     this->addProperty("target_angles", target_angles).doc("Target joint angles to be reached [rad]");
 
     epsilon = 0.005f; // TODO: Adjust?
     this->addProperty("epsilon", epsilon).doc("Desired precision [rad]");
 
-    pushing_axis.setZero(6);
-    pushing_axis(2) = 1.0;
-    this->addProperty("pushing_axis", pushing_axis).doc("Pushing direction in EE frame");
+    hand_axis.setZero(6);
+    hand_axis(2) = 1.0f;
+    this->addProperty("hand_axis", hand_axis).doc("Pushing direction in EE frame");
 
     push = false;
     this->addProperty("push", push).doc("If true, pushing torques are applied as soon as target angles are reached");
 
     this->addOperation("loadModel", &Lwr_testdriver::loadModel, this).doc("Load kinematic model from specified URDF file");
     this->addProperty("q", q).doc("Joint values");
+    this->addProperty("tau", tau).doc("Computed joint torques");
 
     joint_state_base_in_port.doc("Base joint state feedback port");
     joint_state_base_in_flow = RTT::NoData;
@@ -39,6 +40,9 @@ Lwr_testdriver::Lwr_testdriver(std::string const& name) : TaskContext(name){
 
     torques_upper_arm_out_port.doc("Upper arm torque output port");
     this->addPort("torquesUpperArmOut", torques_upper_arm_out_port);
+
+    this->addOperation("setForces", &Lwr_testdriver::setForceAxis, this, RTT::ClientThread);
+    this->addOperation("print", &Lwr_testdriver::printShit, this, RTT::ClientThread);
 
     model_loaded = false;
 
@@ -62,6 +66,15 @@ bool Lwr_testdriver::configureHook(){
     return true;
 }
 
+void Lwr_testdriver::setForceAxis(double x, double y, double z){
+    hand_axis[0] = x;
+    hand_axis[1] = y;
+    hand_axis[2] = z;
+    hand_axis[3] = 0.0;
+    hand_axis[4] = 0.0;
+    hand_axis[5] = 0.0;
+}
+
 
 bool Lwr_testdriver::startHook(){
     torques_base_out_data.torques.setZero(1);
@@ -82,30 +95,29 @@ void Lwr_testdriver::updateHook(){
 
     // If in position & pushing enabled, push!
     // Else drive to position
-    if(push && in_position == 6) {
-        torques_upper_arm_out_data.torques = computeTorques(pushing_axis).tail<6>().cast<float>();
+    if(push && in_position == 7) {
+        tau = computeTorques(hand_axis.cast<double>()).cast<float>();
     } else {
         in_position = 0;
 
-        // For six joints in upper_arm
-        for(counter = 0; counter < 6; counter++) {
+        // For all seven joints
+        for(counter = 0; counter < 7; counter++) {
 
-            // Apply torque until target angles are within reach of epsilon
-            if(std::abs(target_angles[counter+1] - joint_state_upper_arm_in_data.angles[counter]) > epsilon) {
-
-                // Actually move in correct direction
-                if(target_angles[counter+1] - joint_state_upper_arm_in_data.angles[counter] < 0) {
-                    torques_upper_arm_out_data.torques[counter] = -1.0f * positioning_torque;
-                } else {
-                    torques_upper_arm_out_data.torques[counter] = positioning_torque;
-                }
+            if(target_angles[counter] - q(counter) > epsilon) {
+                tau[counter] = positioning_torque;
+            } else if(target_angles[counter] - q(counter) < -epsilon) {
+                tau[counter] = -positioning_torque;
             } else {
-                torques_upper_arm_out_data.torques[counter] = 0.0f;
+                tau[counter] = 0.0f;
                 in_position++;
             }
         }
     }
 
+    // Write torques to their respective output ports
+    torques_base_out_data.torques = tau.head<1>();
+    torques_upper_arm_out_data.torques = tau.tail<6>();
+    torques_base_out_port.write(torques_base_out_data);
     torques_upper_arm_out_port.write(torques_upper_arm_out_data);
 }
 
@@ -151,10 +163,9 @@ bool Lwr_testdriver::loadModel(const std::string& model_path) {
 }
 
 
-Eigen::VectorXd Lwr_testdriver::computeTorques(Eigen::Matrix<double, 6, 1>& axis, double magnitude) {
-    // TODO Do not declare variables here!
-    fk_solver_pos->JntToCart(q, ee);
-    inv = ee.Inverse();
+Eigen::VectorXd Lwr_testdriver::computeTorques(const Eigen::Matrix<double, 6, 1>& axis, const double magnitude) {
+    fk_solver_pos->JntToCart(q, hand, lwr.getNrOfSegments()-1);
+    inv = hand.Inverse();
 
     htb.Zero(6, 6);
     for(ind_j = 0; ind_j < 3; ind_j++) {
@@ -170,6 +181,20 @@ Eigen::VectorXd Lwr_testdriver::computeTorques(Eigen::Matrix<double, 6, 1>& axis
     return j_htb.data.transpose() * axis * magnitude;
 }
 
+void Lwr_testdriver::printShit(){
+    std::cout<<"---------HTB--------------"<<std::endl;
+    std::cout<<htb<<std::endl;
+
+    std::cout<<"---------JAC--------------"<<std::endl;
+    std::cout<<j.data<<std::endl;
+
+    std::cout<<"---------INV--------------"<<std::endl;
+    std::cout<<inv<<std::endl;
+
+    std::cout<<"---------TAU--------------"<<std::endl;
+    std::cout<<torques_upper_arm_out_data<<std::endl;
+}
+
 
 /*
  * Using this macro, only one component may live
@@ -180,7 +205,7 @@ Eigen::VectorXd Lwr_testdriver::computeTorques(Eigen::Matrix<double, 6, 1>& axis
  * In case you want to link with another library that
  * already contains components.
  *
- * If you have put your component class
+ * .f you have put your component class
  * in a namespace, don't forget to add it here too:
  */
 ORO_CREATE_COMPONENT(Lwr_testdriver)

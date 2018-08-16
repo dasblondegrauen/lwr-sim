@@ -26,10 +26,11 @@ public:
 
 private:
     bool loadModel(const std::string& model_path);
-    Eigen::VectorXd computeTorques(Eigen::Matrix<double, 6, 1>& axis, double magnitude = 1.0);
+    Eigen::VectorXd computeTorques(const Eigen::Matrix<double, 6, 1>& axis, const double magnitude = 1.0);
 
     Eigen::VectorXf target_angles;
-    Eigen::Matrix<double, 6, 1> pushing_axis;
+    Eigen::Matrix<float, 6, 1> hand_axis;
+    Eigen::Matrix<float, 7, 1> tau;
     Eigen::Index counter;
     float positioning_torque;
     float epsilon;
@@ -50,15 +51,18 @@ private:
 
 
     bool model_loaded = true;
+    void setForceAxis(double x, double y, double z);
     urdf::Model model;
     KDL::Tree model_tree;
     KDL::Chain lwr;
     KDL::JntArray q;
     int ind_i, ind_j;
 
+    void printShit();
+
     std::unique_ptr<KDL::ChainFkSolverPos_recursive> fk_solver_pos;
     std::unique_ptr<KDL::ChainJntToJacSolver> jnt_to_jac_solver;
-    KDL::Frame ee;
+    KDL::Frame hand;
     KDL::Frame inv;
     Eigen::Matrix<double, 6, 6> htb;
     KDL::Jacobian j;
