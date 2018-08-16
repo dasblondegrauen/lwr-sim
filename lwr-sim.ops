@@ -1,5 +1,6 @@
 import("rst-rt_typekit");
 import("eigen_typekit");
+import("kdl_typekit");
 import("rtt_gazebo_embedded");
 import("rtt-gazebo-lwr4plus-sim");
 import("rtt-core-extensions");
@@ -31,10 +32,13 @@ driver.loadModel("/home/franka/citk/systems/cogimon-minimal-nightly/share/gazebo
 driver.configure();
 
 var ConnPolicy cp;
+connect("lwr.base_JointFeedback", "driver.jointStateBaseIn", cp)
 connect("lwr.upper_arm_JointFeedback", "driver.jointStateUpperArmIn", cp);
+connect("driver.torquesBaseOut", "lwr.base_JointTorqueCtrl", cp);
 connect("driver.torquesUpperArmOut", "lwr.upper_arm_JointTorqueCtrl", cp);
 
 gazebo.toggleDynamicsSimulation(true);
+lwr.setControlMode("base", "JointTorqueCtrl");
 lwr.setControlMode("upper_arm", "JointTorqueCtrl");
 lwr.start();
 #driver.start();
