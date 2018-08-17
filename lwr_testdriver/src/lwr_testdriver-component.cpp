@@ -25,21 +25,16 @@ Lwr_testdriver::Lwr_testdriver(std::string const& name) : TaskContext(name){
 
     this->addOperation("loadModel", &Lwr_testdriver::loadModel, this).doc("Load kinematic model from specified URDF file");
     this->addProperty("q", q).doc("Joint values");
+
+    tau.setZero(7);
     this->addProperty("tau", tau).doc("Computed joint torques");
 
-    joint_state_base_in_port.doc("Base joint state feedback port");
-    joint_state_base_in_flow = RTT::NoData;
-    this->addPort("jointStateBaseIn", joint_state_base_in_port);
+    joint_state_in_port.doc("Joint state feedback port");
+    joint_state_in_flow = RTT::NoData;
+    this->addPort("jointStateIn", joint_state_in_port);
 
-    joint_state_upper_arm_in_port.doc("Upper arm joint state feedback port");
-    joint_state_upper_arm_in_flow = RTT::NoData;
-    this->addPort("jointStateUpperArmIn", joint_state_upper_arm_in_port);
-
-    torques_base_out_port.doc("Base torque output port");
-    this->addPort("torquesBaseOut", torques_base_out_port);
-
-    torques_upper_arm_out_port.doc("Upper arm torque output port");
-    this->addPort("torquesUpperArmOut", torques_upper_arm_out_port);
+    torques_out_port.doc("Torque output port");
+    this->addPort("torquesOut", torques_out_port);
 
     this->addOperation("setForces", &Lwr_testdriver::setForceAxis, this, RTT::ClientThread);
     this->addOperation("print", &Lwr_testdriver::printShit, this, RTT::ClientThread);
@@ -51,11 +46,8 @@ Lwr_testdriver::Lwr_testdriver(std::string const& name) : TaskContext(name){
 
 
 bool Lwr_testdriver::configureHook(){
-    torques_base_out_data.torques.setZero(1);
-    torques_base_out_port.setDataSample(torques_base_out_data);
-
-    torques_upper_arm_out_data.torques.setZero(6);
-    torques_upper_arm_out_port.setDataSample(torques_upper_arm_out_data);
+    torques_out_data.torques.setZero(7);
+    torques_out_port.setDataSample(torques_out_data);
 
     if(!model_loaded) {
         RTT::log(RTT::Error) << "No model loaded" << RTT::endlog();
@@ -77,8 +69,7 @@ void Lwr_testdriver::setForceAxis(double x, double y, double z){
 
 
 bool Lwr_testdriver::startHook(){
-    torques_base_out_data.torques.setZero(1);
-    torques_upper_arm_out_data.torques.setZero(6);
+    torques_out_data.torques.setZero(7);
 
     RTT::log(RTT::Info) << "Lwr_testdriver started" << RTT::endlog();
     return true;
@@ -87,15 +78,12 @@ bool Lwr_testdriver::startHook(){
 
 void Lwr_testdriver::updateHook(){
     // Read current state
-    joint_state_base_in_flow = joint_state_base_in_port.read(joint_state_base_in_data);
-    q.data.head<1>() = joint_state_base_in_data.angles.cast<double>();
+    joint_state_in_flow = joint_state_in_port.read(joint_state_in_data);
+    q.data = joint_state_in_data.angles.cast<double>();
 
-    joint_state_upper_arm_in_flow = joint_state_upper_arm_in_port.read(joint_state_upper_arm_in_data);
-    q.data.tail<6>() = joint_state_upper_arm_in_data.angles.cast<double>();
-
-    // If in position & pushing enabled, push!
+    // If pushing enabled (and in position), push!
     // Else drive to position
-    if(push && in_position == 7) {
+    if(push /*&& in_position == 7*/) {
         tau = computeTorques(hand_axis.cast<double>()).cast<float>();
     } else {
         in_position = 0;
@@ -115,16 +103,13 @@ void Lwr_testdriver::updateHook(){
     }
 
     // Write torques to their respective output ports
-    torques_base_out_data.torques = tau.head<1>();
-    torques_upper_arm_out_data.torques = tau.tail<6>();
-    torques_base_out_port.write(torques_base_out_data);
-    torques_upper_arm_out_port.write(torques_upper_arm_out_data);
+    torques_out_data.torques = tau;
+    torques_out_port.write(torques_out_data);
 }
 
 
 void Lwr_testdriver::stopHook() {
-    torques_base_out_data.torques.setZero(1);
-    torques_upper_arm_out_data.torques.setZero(6);
+    torques_out_data.torques.setZero(7);
 
     RTT::log(RTT::Info) << "Lwr_testdriver executes stopping" << RTT::endlog();
 }
@@ -192,7 +177,7 @@ void Lwr_testdriver::printShit(){
     std::cout<<inv<<std::endl;
 
     std::cout<<"---------TAU--------------"<<std::endl;
-    std::cout<<torques_upper_arm_out_data<<std::endl;
+    std::cout<<torques_out_data<<std::endl;
 }
 
 

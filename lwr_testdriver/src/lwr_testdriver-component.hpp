@@ -27,31 +27,26 @@ public:
 private:
     bool loadModel(const std::string& model_path);
     Eigen::VectorXd computeTorques(const Eigen::Matrix<double, 6, 1>& axis, const double magnitude = 1.0);
+    void setForceAxis(double x, double y, double z);
 
     Eigen::VectorXf target_angles;
-    Eigen::Matrix<float, 6, 1> hand_axis;
-    Eigen::Matrix<float, 7, 1> tau;
+    Eigen::VectorXf hand_axis;
+    Eigen::VectorXf tau;
     Eigen::Index counter;
     float positioning_torque;
     float epsilon;
     unsigned short in_position = 0;
     bool push = false;
 
-    RTT::InputPort<rstrt::robot::JointState> joint_state_base_in_port;
-    RTT::InputPort<rstrt::robot::JointState> joint_state_upper_arm_in_port;
-    RTT::FlowStatus joint_state_base_in_flow;
-    RTT::FlowStatus joint_state_upper_arm_in_flow;
-    rstrt::robot::JointState joint_state_base_in_data;
-    rstrt::robot::JointState joint_state_upper_arm_in_data;
+    RTT::InputPort<rstrt::robot::JointState> joint_state_in_port;
+    RTT::FlowStatus joint_state_in_flow;
+    rstrt::robot::JointState joint_state_in_data;
 
-    RTT::OutputPort<rstrt::dynamics::JointTorques> torques_base_out_port;
-    RTT::OutputPort<rstrt::dynamics::JointTorques> torques_upper_arm_out_port;
-    rstrt::dynamics::JointTorques torques_base_out_data;
-    rstrt::dynamics::JointTorques torques_upper_arm_out_data;
+    RTT::OutputPort<rstrt::dynamics::JointTorques> torques_out_port;
+    rstrt::dynamics::JointTorques torques_out_data;
 
 
     bool model_loaded = true;
-    void setForceAxis(double x, double y, double z);
     urdf::Model model;
     KDL::Tree model_tree;
     KDL::Chain lwr;

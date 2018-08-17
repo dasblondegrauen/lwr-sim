@@ -1,0 +1,12 @@
+import("eigen_typekit");
+import("rst-rt_typekit");
+import("kdl_typekit");
+import("rtt_gazebo_embedded");
+import("rtt-core-extensions");
+import("lwr_testdriver");
+require("os");
+
+loadComponent("driver", "Lwr_testdriver");
+setActivity("driver", 0.001, 10, ORO_SCHED_OTHER);
+driver.loadModel("/citk/systems/cogimon-minimal-nightly/share/gazebo/models/cogimon/kuka-lwr-4plus-ft/model.urdf");
+driver.configure();
