@@ -27,7 +27,9 @@ public:
 private:
     bool loadModel(const std::string& model_path);
     Eigen::VectorXd computeTorques(const Eigen::Matrix<double, 6, 1>& axis, const double magnitude = 1.0);
-    void setForceAxis(double x, double y, double z);
+    bool setMode(std::string mode);
+    void setForceAxis(float x, float y, float z);
+    void printShit();
 
     Eigen::VectorXf target_angles;
     Eigen::VectorXf hand_axis;
@@ -36,7 +38,7 @@ private:
     float positioning_torque;
     float epsilon;
     unsigned short in_position = 0;
-    bool push = false;
+    std::string mode;
 
     RTT::InputPort<rstrt::robot::JointState> joint_state_in_port;
     RTT::FlowStatus joint_state_in_flow;
@@ -52,8 +54,6 @@ private:
     KDL::Chain lwr;
     KDL::JntArray q;
     int ind_i, ind_j;
-
-    void printShit();
 
     std::unique_ptr<KDL::ChainFkSolverPos_recursive> fk_solver_pos;
     std::unique_ptr<KDL::ChainJntToJacSolver> jnt_to_jac_solver;
