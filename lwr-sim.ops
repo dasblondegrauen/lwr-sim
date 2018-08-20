@@ -1,44 +1,42 @@
-import("rst-rt_typekit");
 import("eigen_typekit");
 import("kdl_typekit");
+import("rst-rt_typekit");
 import("rtt_gazebo_embedded");
-import("rtt-gazebo-lwr4plus-sim");
-import("rtt-core-extensions");
+import("rtt-gazebo-robot-sim");
 import("lwr_testdriver");
 require("os");
 
-#os.setenv("GAZEBO_MODEL_PATH", "/home/franka/cogimon-gazebo-models/");
-
 loadComponent("gazebo", "RTTGazeboEmbedded");
-setActivity("gazebo", 0.001, 10, ORO_SCHED_OTHER);
+setActivity("gazebo", 0, 10, ORO_SCHED_OTHER);
 
-gazebo.argv = strings("--verbose");
-gazebo.add_plugin("libRTTGazeboClockPlugin.so");
+gazebo.argv = strings("--verbose", "-s /orocos/gnulinux/rtt_gazebo_system/librtt_gazebo_system.so");
 gazebo.world_path = "zerog.sdf";
 gazebo.configure();
 gazebo.start();
 gazebo.toggleDynamicsSimulation(false);
-gazebo.spawn_model("gazebo-lwr", "model://kuka-lwr-4plus-ft", 10);
+gazebo.spawn_model("gazebo-lwr", "model://kuka-lwr-4plus-ft", 20);
 
-loadComponent("lwr", "cogimon::lwrSim");
-setActivity("lwr", 0.001, 11, ORO_SCHED_OTHER);
+loadComponent("lwr", "cogimon::robotSim");
+setActivity("lwr", 0, 11, ORO_SCHED_OTHER);
 
+var string model_path = os.getenv("GAZEBO_MODEL_PATH") + "/kuka-lwr-4plus-ft";
+lwr.loadURDFAndSRDF(model_path + "/model.urdf", model_path + "/model.srdf");
 lwr.getModel("gazebo-lwr");
 lwr.configure();
 
+var array conf = array(1.57, 0.35, -1.57, -1.57, 1.57, 0.35, 0.0);
+lwr.setInitialPosition("full_arm", conf);
+
 loadComponent("driver", "Lwr_testdriver");
 setActivity("driver", 0.001, 10, ORO_SCHED_OTHER);
-driver.loadModel("/home/franka/citk/systems/cogimon-minimal-nightly/share/gazebo/models/cogimon/kuka-lwr-4plus-ft/model.urdf");
+driver.loadModel(model_path + "/model.urdf");
 driver.configure();
 
 var ConnPolicy cp;
-connect("lwr.base_JointFeedback", "driver.jointStateBaseIn", cp)
-connect("lwr.upper_arm_JointFeedback", "driver.jointStateUpperArmIn", cp);
-connect("driver.torquesBaseOut", "lwr.base_JointTorqueCtrl", cp);
-connect("driver.torquesUpperArmOut", "lwr.upper_arm_JointTorqueCtrl", cp);
+connect("lwr.full_arm_JointFeedback", "driver.jointStateIn", cp);
+connect("driver.torquesOut", "lwr.full_arm_JointTorqueCtrl", cp);
 
 gazebo.toggleDynamicsSimulation(true);
-lwr.setControlMode("base", "JointTorqueCtrl");
-lwr.setControlMode("upper_arm", "JointTorqueCtrl");
+lwr.setControlMode("full_arm", "JointTorqueCtrl");
 lwr.start();
 driver.start();
