@@ -147,7 +147,7 @@ Eigen::VectorXd Lwr_testdriver::computeTorques(const Eigen::Matrix<double, 6, 1>
     fk_solver_pos->JntToCart(q, hand);
     inv = hand.Inverse();
 
-    htb.Zero(6, 6);
+    htb.setZero(6, 6);
     for(ind_j = 0; ind_j < 3; ind_j++) {
         for(ind_i = 0; ind_i < 3; ind_i++) {
             htb(ind_i, ind_j) = static_cast<double>(inv(ind_i, ind_j));
