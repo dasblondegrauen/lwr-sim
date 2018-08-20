@@ -40,3 +40,4 @@ gazebo.toggleDynamicsSimulation(true);
 lwr.setControlMode("full_arm", "JointTorqueCtrl");
 lwr.start();
 driver.start();
+driver.setMode("torque");
