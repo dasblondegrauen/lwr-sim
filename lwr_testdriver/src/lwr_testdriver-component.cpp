@@ -193,6 +193,9 @@ void Lwr_testdriver::printShit(){
 
     std::cout<<"---------TAU--------------"<<std::endl;
     std::cout<<torques_out_data<<std::endl;
+
+    std::cout<<"---------Segments---------"<<std::endl;
+    std::cout<<lwr.getNrOfSegments()<<std::endl;
 }
 
 
