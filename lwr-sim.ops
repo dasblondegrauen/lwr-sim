@@ -24,10 +24,6 @@ lwr.loadURDFAndSRDF(model_path + "/model.urdf", model_path + "/model.srdf");
 lwr.getModel("gazebo-lwr");
 lwr.configure();
 
-#var double rad = 3.141/180.0;
-#var array conf = array(-30.0*rad, -25.0*rad, 80.0*rad, -80.0*rad, 90.0*rad, 45.0*rad, 0.0);
-#lwr.setInitialPosition("full_arm", conf);
-
 loadComponent("driver", "Lwr_testdriver");
 setActivity("driver", 0.001, 10, ORO_SCHED_OTHER);
 #driver.loadModel(model_path + "/model.urdf", "lwr_arm_base_link");
@@ -38,9 +34,13 @@ var ConnPolicy cp;
 connect("lwr.full_arm_JointFeedback", "driver.jointStateIn", cp);
 connect("driver.torquesOut", "lwr.full_arm_JointTorqueCtrl", cp);
 
-gazebo.toggleDynamicsSimulation(true);
 lwr.setControlMode("full_arm", "JointTorqueCtrl");
 lwr.start();
 driver.start();
 driver.setMode("torque");
 
+#var double rad = 3.141/180.0;
+#var array conf = array(-30.0*rad, -25.0*rad, 80.0*rad, -80.0*rad, 90.0*rad, 45.0*rad, 0.0);
+#lwr.setInitialPosition("full_arm", conf);
+
+gazebo.toggleDynamicsSimulation(true);
