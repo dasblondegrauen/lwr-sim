@@ -25,9 +25,9 @@ public:
     void cleanupHook();
 
 private:
-    bool loadModel(const std::string& model_path);
+    bool loadModel(const std::string& model_path, const std::string& base_link="lwr_arm_base_link");
     Eigen::VectorXd computeTorques(const Eigen::Matrix<double, 6, 1>& axis, const double magnitude = 1.0);
-    bool setMode(std::string mode);
+    bool setMode(const std::string& mode);
     void setForceAxis(float x, float y, float z);
     void printShit();
 

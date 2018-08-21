@@ -69,17 +69,19 @@ bool Lwr_testdriver::startHook(){
 void Lwr_testdriver::updateHook(){
     // Read current state
     joint_state_in_flow = joint_state_in_port.read(joint_state_in_data);
+
     if(joint_state_in_flow == RTT::NoData) {
         RTT::log(RTT::Error) << "No joint state input" << RTT::endlog();
         return;
     }
 
-    q.data = joint_state_in_data.angles.cast<double>();
+    q.data = joint_state_in_data.angles.tail(lwr.getNrOfJoints()).cast<double>();
 
     // If in torque mode, compute torques
     // Else drive to position/do nothing
     if(mode == "torque") {
-        tau = computeTorques(hand_axis.cast<double>()).cast<float>();
+        tau.setZero(7);
+        tau.tail(lwr.getNrOfJoints()) = computeTorques(hand_axis.cast<double>()).cast<float>();
     } else if(mode == "position"){
         in_position = 0;
 
@@ -115,7 +117,7 @@ void Lwr_testdriver::cleanupHook() {
 }
 
 
-bool Lwr_testdriver::loadModel(const std::string& model_path) {
+bool Lwr_testdriver::loadModel(const std::string& model_path, const std::string& base_link) {
     model_loaded = false;
 
     if(!model.initFile(model_path)) {
@@ -128,7 +130,7 @@ bool Lwr_testdriver::loadModel(const std::string& model_path) {
         return false;
     }
 
-    if(!model_tree.getChain("lwr_arm_base_link", "lwr_arm_7_link", lwr)) {
+    if(!model_tree.getChain(base_link, "lwr_arm_7_link", lwr)) {
         RTT::log(RTT::Error) << "Could not get chain from tree" << RTT::endlog();
         return false;
     }
@@ -162,7 +164,7 @@ Eigen::VectorXd Lwr_testdriver::computeTorques(const Eigen::Matrix<double, 6, 1>
 }
 
 
-bool Lwr_testdriver::setMode(std::string mode) {
+bool Lwr_testdriver::setMode(const std::string& mode) {
     if(mode == "position" || mode == "torque" || mode == "none") {
         this->mode = mode;
         return true;
