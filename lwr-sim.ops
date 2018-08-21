@@ -24,7 +24,8 @@ lwr.loadURDFAndSRDF(model_path + "/model.urdf", model_path + "/model.srdf");
 lwr.getModel("gazebo-lwr");
 lwr.configure();
 
-var array conf = array(1.57, 0.35, -1.57, -1.57, 1.57, 0.35, 0.0);
+var double rad = 3.141/180.0;
+var array conf = array(-30.0*rad, -25.0*rad, 80.0*rad, -80.0*rad, 90.0*rad, 45.0*rad, 0.0);
 lwr.setInitialPosition("full_arm", conf);
 
 loadComponent("driver", "Lwr_testdriver");
@@ -41,3 +42,4 @@ lwr.setControlMode("full_arm", "JointTorqueCtrl");
 lwr.start();
 driver.start();
 driver.setMode("torque");
+
