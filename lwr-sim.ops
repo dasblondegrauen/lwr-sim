@@ -37,7 +37,7 @@ connect("driver.torquesOut", "lwr.full_arm_JointTorqueCtrl", cp);
 lwr.setControlMode("full_arm", "JointTorqueCtrl");
 lwr.start();
 driver.start();
-driver.setMode("torque");
+driver.setMode("position");
 
 #var double rad = 3.141/180.0;
 #var array conf = array(-30.0*rad, -25.0*rad, 80.0*rad, -80.0*rad, 90.0*rad, 45.0*rad, 0.0);

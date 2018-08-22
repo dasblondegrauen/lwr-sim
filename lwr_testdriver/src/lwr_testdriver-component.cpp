@@ -10,7 +10,7 @@ Lwr_testdriver::Lwr_testdriver(std::string const& name) : TaskContext(name){
     this->addProperty("positioning_torque", positioning_torque).doc("Torque to be generated in each joint for positioning");
 
     target_angles.setZero(7);
-    target_angles << -30.0f, -25.0f, 80.0f, -80.0f, 90.0f, 45.0f, 0.0f;
+    target_angles << 70.0f, 12.0f, 90.0f, -80.0f, 0.0f, 60.0f, 0.0f;
     target_angles = target_angles * 3.141f/180.0f;
     this->addProperty("target_angles", target_angles).doc("Target joint angles to be reached [rad]");
 
