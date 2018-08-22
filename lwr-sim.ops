@@ -6,6 +6,7 @@ import("rtt-gazebo-robot-sim");
 import("lwr_testdriver");
 require("os");
 
+# Start Gazebo & spawn LWR model
 loadComponent("gazebo", "RTTGazeboEmbedded");
 setActivity("gazebo", 0, 10, ORO_SCHED_OTHER);
 
@@ -16,6 +17,7 @@ gazebo.start();
 gazebo.toggleDynamicsSimulation(false);
 gazebo.spawn_model("gazebo-lwr", "model://kuka-lwr-4plus-ft", 20);
 
+# Create LWR simulation
 loadComponent("lwr", "cogimon::robotSim");
 setActivity("lwr", 0, 11, ORO_SCHED_OTHER);
 
@@ -24,16 +26,19 @@ lwr.loadURDFAndSRDF(model_path + "/model.urdf", model_path + "/model.srdf");
 lwr.getModel("gazebo-lwr");
 lwr.configure();
 
+# Initialize controller
 loadComponent("driver", "Lwr_testdriver");
 setActivity("driver", 0.001, 10, ORO_SCHED_OTHER);
 #driver.loadModel(model_path + "/model.urdf", "lwr_arm_base_link");
 driver.loadModel(model_path + "/model.urdf", "lwr_arm_3_link");
 driver.configure();
 
+# Connect Feedback & controll ports
 var ConnPolicy cp;
 connect("lwr.full_arm_JointFeedback", "driver.jointStateIn", cp);
 connect("driver.torquesOut", "lwr.full_arm_JointTorqueCtrl", cp);
 
+# Start components
 lwr.setControlMode("full_arm", "JointTorqueCtrl");
 lwr.start();
 driver.start();
