@@ -80,10 +80,10 @@
       <heading_deg>0</heading_deg>
     </spherical_coordinates>
     <state world_name='default'>
-      <sim_time>89 547000000</sim_time>
-      <real_time>10 872242783</real_time>
-      <wall_time>1534423006 561009915</wall_time>
-      <iterations>10768</iterations>
+      <sim_time>103 99000000</sim_time>
+      <real_time>13 641954927</real_time>
+      <wall_time>1535545674 126641648</wall_time>
+      <iterations>13552</iterations>
       <model name='ground_plane'>
         <pose frame=''>0 0 0 0 -0 0</pose>
         <scale>1 1 1</scale>
@@ -97,29 +97,13 @@
       <light name='sun'>
         <pose frame=''>0 0 10 0 -0 0</pose>
       </light>
-      <light name='user_point_light_0'>
-        <pose frame=''>0.024401 -0.009475 1 0 -0 0</pose>
-      </light>
     </state>
     <gui fullscreen='0'>
       <camera name='user_camera'>
-        <pose frame=''>-0.013915 0.680771 2.00009 1.56383 1.56486 -0.001028</pose>
+        <pose frame=''>-0.013915 0.680771 2.00009 1.56383 1.56486 -0.001027</pose>
         <view_controller>orbit</view_controller>
         <projection_type>perspective</projection_type>
       </camera>
     </gui>
-    <light name='user_point_light_0' type='point'>
-      <pose frame=''>0.024401 -0.009475 1 0 -0 0</pose>
-      <diffuse>0.5 0.5 0.5 1</diffuse>
-      <specular>0.1 0.1 0.1 1</specular>
-      <attenuation>
-        <range>20</range>
-        <constant>0.5</constant>
-        <linear>0.01</linear>
-        <quadratic>0.001</quadratic>
-      </attenuation>
-      <cast_shadows>0</cast_shadows>
-      <direction>0 0 -1</direction>
-    </light>
   </world>
 </sdf>
