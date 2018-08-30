@@ -25,7 +25,7 @@ Lwr_testdriver::Lwr_testdriver(std::string const& name) : TaskContext(name) {
     this->addOperation("setMode", &Lwr_testdriver::setMode, this).doc("Set position, torque or none mode");
 
     this->addOperation("loadModel", &Lwr_testdriver::loadModel, this).doc("Load kinematic model from specified URDF file");
-    this->addProperty("q", q).doc("Joint values");
+    this->addProperty("q_upper", q_upper).doc("Upper chain joint values");
 
     tau.setZero(7);
     this->addProperty("tau", tau).doc("Computed joint torques");
@@ -76,13 +76,13 @@ void Lwr_testdriver::updateHook(){
         return;
     }
 
-    q.data = joint_state_in_data.angles.tail(lwr.getNrOfJoints()).cast<double>();
+    q_upper.data = joint_state_in_data.angles.tail(upper.getNrOfJoints()).cast<double>();
 
     // If in torque mode, compute torques
     // Else drive to position/do nothing
     if(mode == "torque") {
         tau.setZero(7);
-        tau.tail(lwr.getNrOfJoints()) = computeTorques(hand_axis.cast<double>()).cast<float>();
+        tau.tail(upper.getNrOfJoints()) = computeTorques(hand_axis.cast<double>()).cast<float>();
     } else if(mode == "position"){
         in_position = 0;
 
@@ -118,7 +118,7 @@ void Lwr_testdriver::cleanupHook() {
 }
 
 
-bool Lwr_testdriver::loadModel(const std::string& model_path, const std::string& base_link) {
+bool Lwr_testdriver::loadModel(const std::string& model_path, const std::string& lower_tip_link, const std::string& upper_root_link) {
     model_loaded = false;
 
     if(!model.initFile(model_path)) {
@@ -131,15 +131,22 @@ bool Lwr_testdriver::loadModel(const std::string& model_path, const std::string&
         return false;
     }
 
-    if(!model_tree.getChain(base_link, "lwr_arm_7_link", lwr)) {
-        RTT::log(RTT::Error) << "Could not get chain from tree" << RTT::endlog();
+    if(!model_tree.getChain("lwr_arm_base_link", lower_tip_link, lower)) {
+        RTT::log(RTT::Error) << "Could not get lower chain from tree" << RTT::endlog();
         return false;
     }
 
-    q = KDL::JntArray(lwr.getNrOfJoints());
-    j = KDL::Jacobian(lwr.getNrOfJoints());
-    fk_solver_pos = std::unique_ptr<KDL::ChainFkSolverPos_recursive>(new KDL::ChainFkSolverPos_recursive(lwr));
-    jnt_to_jac_solver = std::unique_ptr<KDL::ChainJntToJacSolver>(new KDL::ChainJntToJacSolver(lwr));
+    if(!model_tree.getChain(upper_root_link, "lwr_arm_7_link", upper)) {
+        RTT::log(RTT::Error) << "Could not get upper chain from tree" << RTT::endlog();
+    }
+
+    q_lower = KDL::JntArray(lower.getNrOfJoints());
+    q_upper = KDL::JntArray(upper.getNrOfJoints());
+    j_lower = KDL::Jacobian(lower.getNrOfJoints());
+    j_upper = KDL::Jacobian(upper.getNrOfJoints());
+
+    fk_solver_pos = std::unique_ptr<KDL::ChainFkSolverPos_recursive>(new KDL::ChainFkSolverPos_recursive(upper));
+    jnt_to_jac_solver = std::unique_ptr<KDL::ChainJntToJacSolver>(new KDL::ChainJntToJacSolver(upper));
 
     model_loaded = true;
     return true;
@@ -147,7 +154,7 @@ bool Lwr_testdriver::loadModel(const std::string& model_path, const std::string&
 
 
 Eigen::VectorXd Lwr_testdriver::computeTorques(const Eigen::Matrix<double, 6, 1>& axis, const double magnitude) {
-    fk_solver_pos->JntToCart(q, hand);
+    fk_solver_pos->JntToCart(q_upper, hand);
     inv = hand.Inverse();
 
     htb.setZero(6, 6);
@@ -158,8 +165,8 @@ Eigen::VectorXd Lwr_testdriver::computeTorques(const Eigen::Matrix<double, 6, 1>
         }
     }
 
-    jnt_to_jac_solver->JntToJac(q, j);
-    j_htb.data = htb * j.data;
+    jnt_to_jac_solver->JntToJac(q_upper, j_upper);
+    j_htb.data = htb * j_upper.data;
 
     return j_htb.data.transpose() * axis * magnitude;
 }
@@ -189,7 +196,7 @@ void Lwr_testdriver::printShit(){
     std::cout<<htb<<std::endl;
 
     std::cout<<"---------JAC--------------"<<std::endl;
-    std::cout<<j.data<<std::endl;
+    std::cout<<j_upper.data<<std::endl;
 
     std::cout<<"---------INV--------------"<<std::endl;
     std::cout<<inv<<std::endl;
@@ -198,7 +205,7 @@ void Lwr_testdriver::printShit(){
     std::cout<<torques_out_data<<std::endl;
 
     std::cout<<"---------Segments---------"<<std::endl;
-    std::cout<<lwr.getNrOfSegments()<<std::endl;
+    std::cout<<upper.getNrOfSegments()<<std::endl;
 }
 
 

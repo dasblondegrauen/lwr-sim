@@ -25,7 +25,7 @@ public:
     void cleanupHook();
 
 private:
-    bool loadModel(const std::string& model_path, const std::string& base_link="lwr_arm_base_link");
+    bool loadModel(const std::string& model_path, const std::string& lower_tip_link="lwr_arm_3_link", const std::string& upper_root_link="lwr_arm_3_link");
     Eigen::VectorXd computeTorques(const Eigen::Matrix<double, 6, 1>& axis, const double magnitude = 1.0);
     bool setMode(const std::string& mode);
     void setForceAxis(float x, float y, float z);
@@ -51,8 +51,9 @@ private:
     bool model_loaded = true;
     urdf::Model model;
     KDL::Tree model_tree;
-    KDL::Chain lwr;
-    KDL::JntArray q;
+    KDL::Chain lower, upper;
+    KDL::JntArray q_lower, q_upper;
+    KDL::Jacobian j_lower, j_upper;
     int ind_i, ind_j;
 
     std::unique_ptr<KDL::ChainFkSolverPos_recursive> fk_solver_pos;
@@ -60,7 +61,6 @@ private:
     KDL::Frame hand;
     KDL::Frame inv;
     Eigen::Matrix<double, 6, 6> htb;
-    KDL::Jacobian j;
     KDL::Jacobian j_htb;
 };
 #endif
