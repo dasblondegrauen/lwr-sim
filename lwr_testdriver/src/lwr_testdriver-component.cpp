@@ -5,7 +5,7 @@
 #include <kdl/frames_io.hpp>
 
 
-Lwr_testdriver::Lwr_testdriver(std::string const& name) : TaskContext(name){
+Lwr_testdriver::Lwr_testdriver(std::string const& name) : TaskContext(name) {
     positioning_torque = 1.0f;
     this->addProperty("positioning_torque", positioning_torque).doc("Torque to be generated in each joint for positioning");
 
