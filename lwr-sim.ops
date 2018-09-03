@@ -31,7 +31,7 @@ lwr.configure();
 loadComponent("driver", "Lwr_testdriver");
 setActivity("driver", 0.001, 10, ORO_SCHED_OTHER);
 #driver.loadModel(model_path + "/model.urdf", "lwr_arm_base_link");
-driver.loadModel(model_path + "/model.urdf", "lwr_arm_3_link");
+driver.loadModel(model_path + "/model.urdf", "lwr_arm_3_link", "lwr_arm_3_link");
 driver.configure();
 
 # Connect Feedback & controll ports

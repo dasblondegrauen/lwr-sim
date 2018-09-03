@@ -8,5 +8,6 @@ require("os");
 
 loadComponent("driver", "Lwr_testdriver");
 setActivity("driver", 0.001, 10, ORO_SCHED_OTHER);
-driver.loadModel("/citk/systems/cogimon-minimal-nightly/share/gazebo/models/cogimon/kuka-lwr-4plus-ft/model.urdf");
+var string model_path = os.getenv("GAZEBO_MODEL_PATH");
+driver.loadModel(model_path + "/kuka-lwr-4plus-ft/model.urdf", "lwr_arm_3_link", "lwr_arm_3_link");
 driver.configure();
