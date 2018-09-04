@@ -29,10 +29,11 @@ private:
     Eigen::VectorXd computeTorques(const Eigen::Matrix<double, 6, 1>& axis, const double magnitude = 1.0);
     bool setMode(const std::string& mode);
     void setForceAxis(float x, float y, float z);
+    Eigen::VectorXd control(const Eigen::VectorXd& target, const Eigen::VectorXd& current);
     void printShit();
 
     Eigen::VectorXf target_angles;
-    Eigen::VectorXf hand_axis;
+    Eigen::VectorXf hand_forces;
     Eigen::VectorXf tau;
     Eigen::Index counter;
     float positioning_torque;
@@ -56,11 +57,14 @@ private:
     KDL::Jacobian j_lower, j_upper;
     int ind_i, ind_j;
 
-    std::unique_ptr<KDL::ChainFkSolverPos_recursive> fk_solver_pos;
-    std::unique_ptr<KDL::ChainJntToJacSolver> jnt_to_jac_solver;
-    KDL::Frame hand;
-    KDL::Frame inv;
-    Eigen::Matrix<double, 6, 6> htb;
-    KDL::Jacobian j_htb;
+    std::unique_ptr<KDL::ChainFkSolverPos_recursive> fk_solver_pos_upper;
+    std::unique_ptr<KDL::ChainJntToJacSolver> jnt_to_jac_solver_lower, jnt_to_jac_solver_upper;
+    KDL::Frame tip_lower, tip_upper;
+    KDL::Frame inv_lower, inv_upper;
+    Eigen::Matrix<double, 6, 6> htb_lower, htb_upper;
+    KDL::Jacobian j_htb_lower, j_htb_upper;
+
+    Eigen::VectorXd e_current, e_total, e_previous;
+    double k_p = 1, k_i = 1, k_d = 1;
 };
 #endif

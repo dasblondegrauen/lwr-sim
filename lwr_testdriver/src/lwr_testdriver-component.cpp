@@ -6,29 +6,34 @@
 
 
 Lwr_testdriver::Lwr_testdriver(std::string const& name) : TaskContext(name) {
+    mode = "none";
+    this->addOperation("setMode", &Lwr_testdriver::setMode, this).doc("Set position, torque or none mode");
+
     positioning_torque = 1.0f;
     this->addProperty("positioning_torque", positioning_torque).doc("Torque to be generated in each joint for positioning");
+
+    epsilon = 0.005f;
+    this->addProperty("epsilon", epsilon).doc("Desired precision [rad]");
 
     target_angles.setZero(7);
     target_angles << 70.0f, 12.0f, 90.0f, -80.0f, 0.0f, 60.0f, 0.0f;
     target_angles = target_angles * 3.141f/180.0f;
     this->addProperty("target_angles", target_angles).doc("Target joint angles to be reached [rad]");
 
-    epsilon = 0.005f;
-    this->addProperty("epsilon", epsilon).doc("Desired precision [rad]");
-
-    hand_axis.setZero(6);
-    this->addProperty("hand_axis", hand_axis).doc("Forces/torques in EE frame");
+    hand_forces.setZero(6);
+    this->addProperty("hand_forces", hand_forces).doc("Forces/torques in EE frame");
     this->addOperation("setForces", &Lwr_testdriver::setForceAxis, this).doc("Set forces in EE frame");
-
-    mode = "none";
-    this->addOperation("setMode", &Lwr_testdriver::setMode, this).doc("Set position, torque or none mode");
 
     this->addOperation("loadModel", &Lwr_testdriver::loadModel, this).doc("Load kinematic model from specified URDF file");
     this->addProperty("q_upper", q_upper).doc("Upper chain joint values");
+    this->addProperty("q_lower", q_lower).doc("Lower chain joint values");
 
     tau.setZero(7);
     this->addProperty("tau", tau).doc("Computed joint torques");
+
+    this->addProperty("k_proportional", k_p).doc("Proportional PID gain");
+    this->addProperty("k_integral", k_i).doc("Integral PID gain");
+    this->addProperty("k_derivative", k_d).doc("Derivative PID gain");
 
     joint_state_in_port.doc("Joint state feedback port");
     joint_state_in_flow = RTT::NoData;
@@ -62,6 +67,10 @@ bool Lwr_testdriver::configureHook(){
 bool Lwr_testdriver::startHook(){
     torques_out_data.torques.setZero(7);
 
+    e_previous.setZero(lower.getNrOfJoints());
+    e_current.setZero(lower.getNrOfJoints());
+    e_total.setZero(lower.getNrOfJoints());
+
     RTT::log(RTT::Info) << "Lwr_testdriver started" << RTT::endlog();
     return true;
 }
@@ -76,13 +85,15 @@ void Lwr_testdriver::updateHook(){
         return;
     }
 
+    q_lower.data = joint_state_in_data.angles.head(lower.getNrOfJoints()).cast<double>();
     q_upper.data = joint_state_in_data.angles.tail(upper.getNrOfJoints()).cast<double>();
 
     // If in torque mode, compute torques
     // Else drive to position/do nothing
     if(mode == "torque") {
         tau.setZero(7);
-        tau.tail(upper.getNrOfJoints()) = computeTorques(hand_axis.cast<double>()).cast<float>();
+        tau.head(lower.getNrOfJoints()) = -joint_state_in_data.torques.head(lower.getNrOfJoints());
+        tau.tail(upper.getNrOfJoints()) = computeTorques(hand_forces.cast<double>()).cast<float>();
     } else if(mode == "position"){
         in_position = 0;
 
@@ -145,8 +156,10 @@ bool Lwr_testdriver::loadModel(const std::string& model_path, const std::string&
     j_lower = KDL::Jacobian(lower.getNrOfJoints());
     j_upper = KDL::Jacobian(upper.getNrOfJoints());
 
-    fk_solver_pos = std::unique_ptr<KDL::ChainFkSolverPos_recursive>(new KDL::ChainFkSolverPos_recursive(upper));
-    jnt_to_jac_solver = std::unique_ptr<KDL::ChainJntToJacSolver>(new KDL::ChainJntToJacSolver(upper));
+    fk_solver_pos_upper = std::unique_ptr<KDL::ChainFkSolverPos_recursive>(new KDL::ChainFkSolverPos_recursive(upper));
+
+    jnt_to_jac_solver_lower = std::unique_ptr<KDL::ChainJntToJacSolver>(new KDL::ChainJntToJacSolver(lower));
+    jnt_to_jac_solver_upper = std::unique_ptr<KDL::ChainJntToJacSolver>(new KDL::ChainJntToJacSolver(upper));
 
     model_loaded = true;
     return true;
@@ -154,21 +167,21 @@ bool Lwr_testdriver::loadModel(const std::string& model_path, const std::string&
 
 
 Eigen::VectorXd Lwr_testdriver::computeTorques(const Eigen::Matrix<double, 6, 1>& axis, const double magnitude) {
-    fk_solver_pos->JntToCart(q_upper, hand);
-    inv = hand.Inverse();
+    fk_solver_pos_upper->JntToCart(q_upper, tip_upper);
+    inv_upper = tip_upper.Inverse();
 
-    htb.setZero(6, 6);
+    htb_upper.setZero(6, 6);
     for(ind_j = 0; ind_j < 3; ind_j++) {
         for(ind_i = 0; ind_i < 3; ind_i++) {
-            htb(ind_i, ind_j) = static_cast<double>(inv(ind_i, ind_j));
-            htb(3 + ind_i, 3 + ind_j) = static_cast<double>(inv(ind_i, ind_j));
+            htb_upper(ind_i, ind_j) = static_cast<double>(inv_upper(ind_i, ind_j));
+            htb_upper(3 + ind_i, 3 + ind_j) = static_cast<double>(inv_upper(ind_i, ind_j));
         }
     }
 
-    jnt_to_jac_solver->JntToJac(q_upper, j_upper);
-    j_htb.data = htb * j_upper.data;
+    jnt_to_jac_solver_upper->JntToJac(q_upper, j_upper);
+    j_htb_upper.data = htb_upper * j_upper.data;
 
-    return j_htb.data.transpose() * axis * magnitude;
+    return j_htb_upper.data.transpose() * axis * magnitude;
 }
 
 
@@ -184,22 +197,33 @@ bool Lwr_testdriver::setMode(const std::string& mode) {
 
 
 void Lwr_testdriver::setForceAxis(float x, float y, float z){
-    hand_axis[0] = x;
-    hand_axis[1] = y;
-    hand_axis[2] = z;
-    hand_axis.tail<3>().setZero();
+    hand_forces[0] = x;
+    hand_forces[1] = y;
+    hand_forces[2] = z;
+    hand_forces.tail<3>().setZero();
+}
+
+
+Eigen::VectorXd Lwr_testdriver::control(const Eigen::VectorXd& target, const Eigen::VectorXd& current) {
+    e_previous = e_current;
+    e_current = target - current;
+    e_total += e_current;
+
+    return k_p * e_current
+            + k_i * e_total
+            + k_d * (e_current - e_previous);
 }
 
 
 void Lwr_testdriver::printShit(){
     std::cout<<"---------HTB--------------"<<std::endl;
-    std::cout<<htb<<std::endl;
+    std::cout<<htb_upper<<std::endl;
 
     std::cout<<"---------JAC--------------"<<std::endl;
     std::cout<<j_upper.data<<std::endl;
 
     std::cout<<"---------INV--------------"<<std::endl;
-    std::cout<<inv<<std::endl;
+    std::cout<<inv_upper<<std::endl;
 
     std::cout<<"---------TAU--------------"<<std::endl;
     std::cout<<torques_out_data<<std::endl;
