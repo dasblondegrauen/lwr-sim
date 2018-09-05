@@ -92,7 +92,7 @@ void Lwr_testdriver::updateHook(){
     // Else drive to position/do nothing
     if(mode == "torque") {
         tau.setZero(7);
-        tau.head(lower.getNrOfJoints()) = -joint_state_in_data.torques.head(lower.getNrOfJoints());
+        tau.head(lower.getNrOfJoints()) = controlPID(Eigen::VectorXd::Zero(lower.getNrOfJoints()), joint_state_in_data.velocities.head(lower.getNrOfJoints()).cast<double>()).cast<float>();
         tau.tail(upper.getNrOfJoints()) = computeTorques(hand_forces.cast<double>()).cast<float>();
     } else if(mode == "position"){
         in_position = 0;
@@ -204,7 +204,7 @@ void Lwr_testdriver::setForceAxis(float x, float y, float z){
 }
 
 
-Eigen::VectorXd Lwr_testdriver::control(const Eigen::VectorXd& target, const Eigen::VectorXd& current) {
+Eigen::VectorXd Lwr_testdriver::controlPID(const Eigen::VectorXd& target, const Eigen::VectorXd& current) {
     e_previous = e_current;
     e_current = target - current;
     e_total += e_current;
