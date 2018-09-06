@@ -23,6 +23,7 @@ Lwr_testdriver::Lwr_testdriver(std::string const& name) : TaskContext(name) {
     hand_forces.setZero(6);
     this->addProperty("hand_forces", hand_forces).doc("Forces/torques in EE frame");
     this->addOperation("setForces", &Lwr_testdriver::setForceAxis, this).doc("Set forces in EE frame");
+    this->addOperation("setTorques", &Lwr_testdriver::setTorqueAxis, this).doc("Set torques in EE frame");
 
     this->addOperation("loadModel", &Lwr_testdriver::loadModel, this).doc("Load kinematic model from specified URDF file");
     this->addProperty("q_upper", q_upper).doc("Upper chain joint values");
@@ -200,7 +201,13 @@ void Lwr_testdriver::setForceAxis(float x, float y, float z){
     hand_forces[0] = x;
     hand_forces[1] = y;
     hand_forces[2] = z;
-    hand_forces.tail<3>().setZero();
+}
+
+
+void Lwr_testdriver::setTorqueAxis(float x, float y, float z) {
+    hand_forces[3] = x;
+    hand_forces[4] = y;
+    hand_forces[5] = z;
 }
 
 

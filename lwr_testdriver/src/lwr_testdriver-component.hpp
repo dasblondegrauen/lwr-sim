@@ -29,6 +29,7 @@ private:
     Eigen::VectorXd computeTorques(const Eigen::Matrix<double, 6, 1>& axis, const double magnitude = 1.0);
     bool setMode(const std::string& mode);
     void setForceAxis(float x, float y, float z);
+    void setTorqueAxis(float x, float y, float z);
     Eigen::VectorXd controlPID(const Eigen::VectorXd& target, const Eigen::VectorXd& current);
     void printShit();
 
