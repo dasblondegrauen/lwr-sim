@@ -43,6 +43,7 @@ Lwr_testdriver::Lwr_testdriver(std::string const& name) : TaskContext(name) {
     torques_out_port.doc("Torque output port");
     this->addPort("torquesOut", torques_out_port);
 
+    this->addOperation("averageTau", &Lwr_testdriver::averageTau, this).doc("Print average tau over given number of frames");
     this->addOperation("print", &Lwr_testdriver::printShit, this).doc("Print shit for debugging purposes");
 
     model_loaded = false;
@@ -99,17 +100,27 @@ void Lwr_testdriver::updateHook(){
         in_position = 0;
 
         // For all seven joints
-        for(counter = 0; counter < 7; counter++) {
+        for(joint_counter = 0; joint_counter < 7; joint_counter++) {
 
-            if(target_angles[counter] - joint_state_in_data.angles[counter] > epsilon) {
-                tau[counter] = positioning_torque;
-            } else if(target_angles[counter] - joint_state_in_data.angles[counter] < -epsilon) {
-                tau[counter] = -positioning_torque;
+            if(target_angles[joint_counter] - joint_state_in_data.angles[joint_counter] > epsilon) {
+                tau[joint_counter] = positioning_torque;
+            } else if(target_angles[joint_counter] - joint_state_in_data.angles[joint_counter] < -epsilon) {
+                tau[joint_counter] = -positioning_torque;
             } else {
-                tau[counter] = 0.0f;
+                tau[joint_counter] = 0.0f;
                 in_position++;
             }
         }
+    }
+
+    // Average tau
+    if(frames_total > frames_counter) {
+       tau_sum += tau;
+       frames_counter++;
+    } else if(frames_total > 0) {
+        RTT::log(RTT::Info) << "Average tau over " << frames_total << " iterations:\n" << tau_sum / frames_total << RTT::endlog();
+        frames_total = 0;
+        frames_counter = 0;
     }
 
     // Write torques to their respective output ports
@@ -219,6 +230,13 @@ Eigen::VectorXd Lwr_testdriver::controlPID(const Eigen::VectorXd& target, const 
     return k_p * e_current
             + k_i * e_total
             + k_d * (e_current - e_previous);
+}
+
+
+void Lwr_testdriver::averageTau(int frames) {
+    frames_total = frames;
+    frames_counter = 0;
+    tau_sum = Eigen::VectorXf::Zero(tau.size());
 }
 
 

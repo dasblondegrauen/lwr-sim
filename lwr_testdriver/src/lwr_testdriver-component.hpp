@@ -31,12 +31,13 @@ private:
     void setForceAxis(float x, float y, float z);
     void setTorqueAxis(float x, float y, float z);
     Eigen::VectorXd controlPID(const Eigen::VectorXd& target, const Eigen::VectorXd& current);
+    void averageTau(int frames);
     void printShit();
 
     Eigen::VectorXf target_angles;
     Eigen::VectorXf hand_forces;
     Eigen::VectorXf tau;
-    Eigen::Index counter;
+    Eigen::Index joint_counter;
     float positioning_torque;
     float epsilon;
     unsigned short in_position = 0;
@@ -67,5 +68,8 @@ private:
 
     Eigen::VectorXd e_current, e_total, e_previous;
     double k_p = 1, k_i = 1, k_d = 1;
+
+    Eigen::VectorXf tau_sum;
+    int frames_total = 0, frames_counter = 0;
 };
 #endif
