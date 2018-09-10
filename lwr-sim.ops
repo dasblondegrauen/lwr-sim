@@ -50,3 +50,11 @@ driver.setMode("position");
 #lwr.setInitialPosition("full_arm", conf);
 
 gazebo.toggleDynamicsSimulation(true);
+
+# Logging
+loadComponent("filereporter", "OCL::FileReporting");
+loadService("filereporter", "marshalling");
+connectPeers("filereporter", "lwr");
+filereporter.reportPort("lwr", "full_arm_JointFeedback");
+filereporter.configure();
+filereporter.start();
