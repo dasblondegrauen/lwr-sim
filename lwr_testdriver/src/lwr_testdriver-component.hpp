@@ -68,6 +68,7 @@ private:
 
     Eigen::VectorXd e_current, e_total, e_previous;
     double k_p = 1, k_i = 1, k_d = 1;
+    bool enable_pid = true;
 
     Eigen::VectorXf tau_sum;
     int frames_total = 0, frames_counter = 0;

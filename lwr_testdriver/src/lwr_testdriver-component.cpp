@@ -32,6 +32,7 @@ Lwr_testdriver::Lwr_testdriver(std::string const& name) : TaskContext(name) {
     tau.setZero(7);
     this->addProperty("tau", tau).doc("Computed joint torques");
 
+    this->addProperty("enable_pid", enable_pid).doc("Enable PID controller for lower chain");
     this->addProperty("k_proportional", k_p).doc("Proportional PID gain");
     this->addProperty("k_integral", k_i).doc("Integral PID gain");
     this->addProperty("k_derivative", k_d).doc("Derivative PID gain");
@@ -94,7 +95,11 @@ void Lwr_testdriver::updateHook(){
     // Else drive to position/do nothing
     if(mode == "torque") {
         tau.setZero(7);
-        tau.head(lower.getNrOfJoints()) = controlPID(Eigen::VectorXd::Zero(lower.getNrOfJoints()), joint_state_in_data.velocities.head(lower.getNrOfJoints()).cast<double>()).cast<float>();
+
+        if(enable_pid) {
+            tau.head(lower.getNrOfJoints()) = controlPID(Eigen::VectorXd::Zero(lower.getNrOfJoints()), joint_state_in_data.velocities.head(lower.getNrOfJoints()).cast<double>()).cast<float>();
+        }
+
         tau.tail(upper.getNrOfJoints()) = computeTorques(hand_forces.cast<double>()).cast<float>();
     } else if(mode == "position"){
         in_position = 0;
