@@ -35,6 +35,7 @@ Lwr_testdriver::Lwr_testdriver(std::string const& name) : TaskContext(name) {
     this->addOperation("loadModel", &Lwr_testdriver::loadModel, this).doc("Load kinematic model from specified URDF file");
     this->addProperty("q_upper", q_upper).doc("Upper chain joint values");
     this->addProperty("q_lower", q_lower).doc("Lower chain joint values");
+    this->addProperty("enable_elbow_to_base", elbow_to_base).doc("If true, perform elbow to base transformation on elbow forces/torques");
 
     tau.setZero(7);
     this->addProperty("tau", tau).doc("Computed joint torques");
@@ -104,13 +105,16 @@ void Lwr_testdriver::updateHook(){
         tau.setZero(7);
 
         if(enable_pid) {
+            // If PID control enabled, let controler compute torques
             tau.head(lower.getNrOfJoints()) = controlPID(Eigen::VectorXd::Zero(lower.getNrOfJoints()), joint_state_in_data.velocities.head(lower.getNrOfJoints()).cast<double>()).cast<float>();
         } else {
+            // Otherwise compute torques by (transformed) jacobian of lower kinematic chain
             tau.head(lower.getNrOfJoints()) = computeTorquesLower(elbow_forces.cast<double>()).cast<float>();
         }
 
         tau.tail(upper.getNrOfJoints()) = computeTorquesUpper(hand_forces.cast<double>()).cast<float>();
     } else if(mode == "position"){
+        // Use positioning torques to move to target joint angles
         in_position = 0;
 
         // For all seven joints
@@ -127,7 +131,7 @@ void Lwr_testdriver::updateHook(){
         }
     }
 
-    // Average tau
+    // Average tau for logging purposes (kinda deprecated)
     if(frames_total > frames_counter) {
        tau_sum += tau;
        frames_counter++;
@@ -194,6 +198,7 @@ bool Lwr_testdriver::loadModel(const std::string& model_path, const std::string&
 
 
 Eigen::VectorXd Lwr_testdriver::computeTorquesUpper(const Eigen::Matrix<double, 6, 1>& axis, const double magnitude) {
+    // To set force/torque values in EE frame, perform hand to base transformation
     fk_solver_pos_upper->JntToCart(q_upper, tip_upper);
     inv_upper = tip_upper.Inverse();
 
@@ -206,13 +211,15 @@ Eigen::VectorXd Lwr_testdriver::computeTorquesUpper(const Eigen::Matrix<double, 
     }
 
     jnt_to_jac_solver_upper->JntToJac(q_upper, j_upper);
-    j_htb_upper.data = htb_upper * j_upper.data;
+    j_htb_upper.data = htb_upper * j_upper.data; // HTB-transformed jacobian for EE
 
+    // Compute torques
     return j_htb_upper.data.transpose() * axis * magnitude;
 }
 
 
 Eigen::VectorXd Lwr_testdriver::computeTorquesLower(const Eigen::Matrix<double, 6, 1>& axis, const double magnitude) {
+    // To set force/torque values in elbow frame, perform hand (or rather elbow) to base transformation
     fk_solver_pos_lower->JntToCart(q_lower, tip_lower);
     inv_lower = tip_lower.Inverse();
 
@@ -225,13 +232,28 @@ Eigen::VectorXd Lwr_testdriver::computeTorquesLower(const Eigen::Matrix<double, 
     }
 
     jnt_to_jac_solver_lower->JntToJac(q_lower, j_lower);
-    j_htb_lower.data = htb_lower * j_lower.data;
+    j_htb_lower.data = htb_lower * j_lower.data; // HTB-transformed jacobian for elbow
 
-    return j_htb_lower.data.transpose() * axis * magnitude;
+    // Compute torques
+    if(elbow_to_base) {
+        return j_htb_lower.data.transpose() * axis * magnitude;
+    } else {
+        return j_lower.data.transpose() * axis * magnitude;
+    }
 }
 
 
 bool Lwr_testdriver::setMode(const std::string& mode) {
+    /*
+     * Driver knows 3 modes:
+     * - none
+     *   Will do absolutely nothing
+     * - position
+     *   Will use positioning torques to move to target joint angles
+     * - torque
+     *   Will apply torques set manually or computed by PID controller
+     */
+
     if(mode == "position" || mode == "torque" || mode == "none") {
         this->mode = mode;
         return true;

@@ -69,6 +69,7 @@ private:
     KDL::Frame inv_lower, inv_upper;
     Eigen::Matrix<double, 6, 6> htb_lower, htb_upper;
     KDL::Jacobian j_htb_lower, j_htb_upper;
+    bool elbow_to_base = true;
 
     Eigen::VectorXd e_current, e_total, e_previous;
     double k_p = 1, k_i = 1, k_d = 1;
