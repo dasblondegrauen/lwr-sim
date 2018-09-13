@@ -26,16 +26,20 @@ public:
 
 private:
     bool loadModel(const std::string& model_path, const std::string& lower_tip_link="lwr_arm_3_link", const std::string& upper_root_link="lwr_arm_3_link");
-    Eigen::VectorXd computeTorques(const Eigen::Matrix<double, 6, 1>& axis, const double magnitude = 1.0);
+    Eigen::VectorXd computeTorquesUpper(const Eigen::Matrix<double, 6, 1>& axis, const double magnitude = 1.0);
+    Eigen::VectorXd computeTorquesLower(const Eigen::Matrix<double, 6, 1>& axis, const double magnitude = 1.0);
     bool setMode(const std::string& mode);
-    void setForceAxis(float x, float y, float z);
-    void setTorqueAxis(float x, float y, float z);
+    void setForceAxisUpper(float x, float y, float z);
+    void setForceAxisLower(float x, float y, float z);
+    void setTorqueAxisUpper(float x, float y, float z);
+    void setTorqueAxisLower(float x, float y, float z);
     Eigen::VectorXd controlPID(const Eigen::VectorXd& target, const Eigen::VectorXd& current);
     void averageTau(int frames);
     void printShit();
 
     Eigen::VectorXf target_angles;
     Eigen::VectorXf hand_forces;
+    Eigen::VectorXf elbow_forces;
     Eigen::VectorXf tau;
     Eigen::Index joint_counter;
     float positioning_torque;
@@ -59,7 +63,7 @@ private:
     KDL::Jacobian j_lower, j_upper;
     int ind_i, ind_j;
 
-    std::unique_ptr<KDL::ChainFkSolverPos_recursive> fk_solver_pos_upper;
+    std::unique_ptr<KDL::ChainFkSolverPos_recursive> fk_solver_pos_lower, fk_solver_pos_upper;
     std::unique_ptr<KDL::ChainJntToJacSolver> jnt_to_jac_solver_lower, jnt_to_jac_solver_upper;
     KDL::Frame tip_lower, tip_upper;
     KDL::Frame inv_lower, inv_upper;
@@ -68,7 +72,7 @@ private:
 
     Eigen::VectorXd e_current, e_total, e_previous;
     double k_p = 1, k_i = 1, k_d = 1;
-    bool enable_pid = true;
+    bool enable_pid = false;
 
     Eigen::VectorXf tau_sum;
     int frames_total = 0, frames_counter = 0;
