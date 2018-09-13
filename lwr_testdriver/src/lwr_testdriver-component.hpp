@@ -33,6 +33,8 @@ private:
     void setForceAxisLower(float x, float y, float z);
     void setTorqueAxisUpper(float x, float y, float z);
     void setTorqueAxisLower(float x, float y, float z);
+    void rampForcesUpper(float time, float x, float y, float z);
+    void rampForcesLower(float time, float x, float y, float z);
     Eigen::VectorXd controlPID(const Eigen::VectorXd& target, const Eigen::VectorXd& current);
     void averageTau(int frames);
     void printShit();
@@ -77,5 +79,12 @@ private:
 
     Eigen::VectorXf tau_sum;
     int frames_total = 0, frames_counter = 0;
+
+    Eigen::VectorXf hand_forces_diff, elbow_forces_diff;
+    double start_time_hand = 0.0, start_time_elbow = 0.0;
+    double end_time_hand = 0.0, end_time_elbow = 0.0;
+    double total_time_hand = 0.0, total_time_elbow = 0.0;
+    double current_time_hand, current_time_elbow;
+    bool ramp_forces_hand = false, ramp_forces_elbow = false;
 };
 #endif

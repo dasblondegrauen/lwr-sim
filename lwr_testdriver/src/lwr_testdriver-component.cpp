@@ -37,6 +37,9 @@ Lwr_testdriver::Lwr_testdriver(std::string const& name) : TaskContext(name) {
     this->addProperty("q_lower", q_lower).doc("Lower chain joint values");
     this->addProperty("enable_elbow_to_base", elbow_to_base).doc("If true, perform elbow to base transformation on elbow forces/torques");
 
+    this->addOperation("rampHandForces", &Lwr_testdriver::rampForcesUpper, this).doc("Smoothly ramp up forces over given time intervall");
+    this->addOperation("rampElbowForces", &Lwr_testdriver::rampForcesLower, this).doc("Smoothly ramp up forces over given time intervall");
+
     tau.setZero(7);
     this->addProperty("tau", tau).doc("Computed joint torques");
 
@@ -109,10 +112,21 @@ void Lwr_testdriver::updateHook(){
             tau.head(lower.getNrOfJoints()) = controlPID(Eigen::VectorXd::Zero(lower.getNrOfJoints()), joint_state_in_data.velocities.head(lower.getNrOfJoints()).cast<double>()).cast<float>();
         } else {
             // Otherwise compute torques by (transformed) jacobian of lower kinematic chain
-            tau.head(lower.getNrOfJoints()) = computeTorquesLower(elbow_forces.cast<double>()).cast<float>();
+            if(ramp_forces_elbow) {
+                current_time_elbow = RTT::os::TimeService::ticks2nsecs(RTT::os::TimeService::Instance()->getTicks());
+                tau.head(lower.getNrOfJoints()) = computeTorquesLower(elbow_forces_diff.cast<double>() * (current_time_elbow - start_time_elbow) / total_time_elbow).cast<float>();
+            } else {
+                tau.head(lower.getNrOfJoints()) = computeTorquesLower(elbow_forces.cast<double>()).cast<float>();
+            }
         }
 
-        tau.tail(upper.getNrOfJoints()) = computeTorquesUpper(hand_forces.cast<double>()).cast<float>();
+        if(ramp_forces_hand) {
+            current_time_hand = RTT::os::TimeService::ticks2nsecs(RTT::os::TimeService::Instance()->getTicks());
+            tau.tail(upper.getNrOfJoints()) = computeTorquesUpper(hand_forces_diff.cast<double>() * (current_time_hand - start_time_hand) / total_time_hand).cast<float>();
+        } else {
+            tau.tail(upper.getNrOfJoints()) = computeTorquesUpper(hand_forces.cast<double>()).cast<float>();
+        }
+
     } else if(mode == "position"){
         // Use positioning torques to move to target joint angles
         in_position = 0;
@@ -289,6 +303,30 @@ void Lwr_testdriver::setTorqueAxisLower(float x, float y, float z) {
     elbow_forces[3] = x;
     elbow_forces[4] = y;
     elbow_forces[5] = z;
+}
+
+
+void Lwr_testdriver::rampForcesUpper(float time, float x, float y, float z) {
+    total_time_hand = static_cast<double>(time);
+    start_time_hand = RTT::os::TimeService::ticks2nsecs(RTT::os::TimeService::Instance()->getTicks());
+    end_time_hand = start_time_hand + total_time_hand;
+
+    hand_forces_diff = hand_forces;
+
+    setForceAxisUpper(x, y, z);
+    ramp_forces_hand = true;
+}
+
+
+void Lwr_testdriver::rampForcesLower(float time, float x, float y, float z) {
+    total_time_elbow = static_cast<double>(time);
+    start_time_elbow = RTT::os::TimeService::ticks2nsecs(RTT::os::TimeService::Instance()->getTicks());
+    end_time_elbow = start_time_elbow + total_time_elbow;
+
+    elbow_forces_diff = elbow_forces;
+
+    setForceAxisLower(x, y, z);
+    ramp_forces_elbow = true;
 }
 
 
